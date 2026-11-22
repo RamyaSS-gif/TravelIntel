@@ -9,7 +9,8 @@ import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
+import mimetypes
 
 from config import PROJECT_ROOT
 from olap.customer_data import (
@@ -27,7 +28,10 @@ from olap.booking_store import (
 from olap.olap_operations import FACTS, OLAPEngine, OLAPError, SCHEMAS
 
 
-DATABASE_PATH = PROJECT_ROOT / "travelintel_warehouse.db"
+DATABASE_PATH = Path(
+    os.environ.get("TRAVELINTEL_DB_PATH", PROJECT_ROOT / "travelintel_warehouse.db")
+)
+FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", 8765))
 MAX_REQUEST_BYTES = 1_000_000
@@ -406,6 +410,22 @@ class APIHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_static(self, url_path: str) -> None:
+        """Serve the built frontend; unknown paths fall back to index.html."""
+        root = FRONTEND_DIST.resolve()
+        candidate = (root / unquote(url_path).lstrip("/")).resolve()
+        if root not in candidate.parents or not candidate.is_file():
+            candidate = root / "index.html"
+        body = candidate.read_bytes()
+        content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        cache = "public, max-age=31536000, immutable" if "/assets/" in candidate.as_posix() else "no-cache"
+        self.send_header("Cache-Control", cache)
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:
         request = urlparse(self.path)
         try:
@@ -518,6 +538,8 @@ class APIHandler(BaseHTTPRequestHandler):
                         )
                     },
                 )
+            elif not request.path.startswith("/api/") and FRONTEND_DIST.is_dir():
+                self._send_static(request.path)
             else:
                 self._send_json(404, {"error": "API route not found."})
         except (OLAPError, KeyError) as error:

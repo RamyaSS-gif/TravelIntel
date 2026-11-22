@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: travelintel
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      # Free instances have no persistent disk: the database is downloaded
+      # from the Hugging Face dataset each time the instance starts.
+      - key: TRAVELINTEL_DB_PATH
+        value: /app/data/travelintel_warehouse.db
+      - key: TRAVELINTEL_ADMIN_EMAIL
+        value: admin@travelintel.local
+      - key: TRAVELINTEL_ADMIN_PASSWORD
+        sync: false          # Render asks for this value when the Blueprint is created
