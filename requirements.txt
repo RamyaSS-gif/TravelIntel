@@ -1,0 +1,2 @@
+pandas>=2.2
+charset-normalizer>=3.3
