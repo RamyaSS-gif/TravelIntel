@@ -1,0 +1,18 @@
+TravelIntel OLAP execution and direct-count validation
+Database: D:\Downloads\archive\travelintel_warehouse.db
+Output folder: D:\Downloads\archive\OLAP Outputs - 9
+All six fact families are supported independently in both schemas.
+
+ROLL_UP | star | star_fact_hotel_booking | 52 result rows | fact records 87396 (direct SQL 87396) | filters: none | PASS | olap_star_roll_up_hotel_booking_20261114_222618.csv
+DRILL_DOWN | snowflake | snowflake_fact_hotel_booking | 26 result rows | fact records 87396 (direct SQL 87396) | filters: none | PASS | olap_snowflake_drill_down_hotel_booking_20261114_222618.csv
+SLICE | star | star_fact_airbnb_calendar_boston | 9 result rows | fact records 889080 (direct SQL 889080) | filters: year=2017 | PASS | olap_star_slice_airbnb_calendar_boston_20261114_222619.csv
+DICE | snowflake | snowflake_fact_airbnb_review_seattle | 1 result rows | fact records 52493 (direct SQL 52493) | filters: year=2015, city='seattle' | PASS | olap_snowflake_dice_airbnb_review_seattle_20261114_222619.csv
+PIVOT | star | star_fact_tourism_observation | 20 result rows | fact records 5000 (direct SQL 5000) | filters: none | PASS | olap_star_pivot_tourism_observation_20261114_222619.csv
+
+Supported fact tables and actual record counts:
+- star_fact_hotel_booking: 87,396 records
+- star_fact_airbnb_calendar_boston: 1,308,525 records
+- star_fact_airbnb_calendar_seattle: 1,393,570 records
+- star_fact_airbnb_review_boston: 68,275 records
+- star_fact_airbnb_review_seattle: 84,849 records
+- star_fact_tourism_observation: 5,000 records
