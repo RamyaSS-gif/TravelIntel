@@ -1,0 +1,20 @@
+*.db
+*.db-*
+*.part
+**/node_modules
+frontend/dist
+**/__pycache__
+.git
+.venv
+Existing Datasets - 1
+Traveller Data - 2
+Hotel Accomodation - 3
+Tourist Reviews - 4
+Tourism Destinations - 5
+Transport Data - 6
+Weather Data - 7
+Processed Data - 8
+OLAP Outputs - 9
+reports
+analysis
+*.exe

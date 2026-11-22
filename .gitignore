@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+proteus-9-1-42460-2.exe
+frontend/node_modules/
+frontend/dist/
+.vscode/
+
+# Original datasets and generated data
+Existing Datasets - 1/
+Traveller Data - 2/
+Hotel Accomodation - 3/
+Tourist Reviews - 4/
+Tourism Destinations - 5/
+Transport Data - 6/
+Weather Data - 7/
+Processed Data - 8/
+OLAP Outputs - 9/
+reports/
+analysis/
