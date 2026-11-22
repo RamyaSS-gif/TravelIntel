@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 import mimetypes
+import threading
 
 from config import PROJECT_ROOT
 from olap.customer_data import (
@@ -32,6 +33,7 @@ DATABASE_PATH = Path(
     os.environ.get("TRAVELINTEL_DB_PATH", PROJECT_ROOT / "travelintel_warehouse.db")
 )
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
+_REVIEW_CACHE: dict[tuple[str, int], Any] = {}
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", 8765))
 MAX_REQUEST_BYTES = 1_000_000
@@ -507,13 +509,15 @@ class APIHandler(BaseHTTPRequestHandler):
                 )
             elif request.path == "/api/customer/reviews":
                 query = parse_qs(request.query)
-                self._send_json(
-                    200,
-                    review_insights(
-                        self.server.database_path,
-                        limit=_query_limit(query, 12, 50),
-                    ),
-                )
+                limit = _query_limit(query, 12, 50)
+                # Review data is read-only and aggregating 1.4M rows is slow
+                # on small hosts, so cache each computed response in memory.
+                cache_key = (str(self.server.database_path), limit)
+                if cache_key not in _REVIEW_CACHE:
+                    _REVIEW_CACHE[cache_key] = review_insights(
+                        self.server.database_path, limit=limit
+                    )
+                self._send_json(200, _REVIEW_CACHE[cache_key])
             elif request.path == "/api/customer/bookings":
                 query = parse_qs(request.query)
                 self._send_json(
@@ -638,6 +642,15 @@ def main() -> None:
     server = ThreadingHTTPServer((HOST, PORT), APIHandler)
     server.database_path = DATABASE_PATH
     print(f"TravelIntel cube API: http://{HOST}:{PORT}/api/health")
+
+    def _warm_review_cache() -> None:
+        try:
+            _REVIEW_CACHE[(str(DATABASE_PATH), 12)] = review_insights(DATABASE_PATH, limit=12)
+            print("[cube-api] Review insights cached.")
+        except Exception as error:  # warm-up is best effort only
+            print(f"[cube-api] Review cache warm-up skipped: {error}")
+
+    threading.Thread(target=_warm_review_cache, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
